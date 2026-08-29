@@ -29,7 +29,6 @@
       <div class="badge badge-cat role-accent"><i class="ti ti-wallet" aria-hidden="true"></i></div>
       <div>
         <p class="title">Gastos compartidos</p>
-        <span id="balance-chip-header" class="chip" style="display:none;"></span>
       </div>
     </div>
     <div style="display:flex;gap:6px;">
@@ -105,18 +104,17 @@
       </div>
     </div>
 
-    <div class="card" id="balance-card" style="margin-bottom:1rem;display:flex;align-items:center;gap:12px;border:none;">
-      <div class="badge badge-cat" id="balance-badge" style="width:40px;height:40px;font-size:19px;"><i class="ti ti-arrow-right" aria-hidden="true"></i></div>
-      <div>
-        <p style="font-size:12px;margin:0;opacity:0.85;">Balance del mes</p>
-        <p id="balance-detail" style="font-size:17px;font-weight:600;margin:2px 0 0;"></p>
-      </div>
+    <div class="card" style="margin-bottom:1rem;">
+      <p class="section-h"><i class="ti ti-chart-donut" aria-hidden="true"></i><span>Quién pagó</span></p>
+      <div id="split-chart" style="display:flex;align-items:center;gap:20px;"></div>
+      <p id="split-empty" style="font-size:13px;color:var(--text-muted);margin:0;display:none;">Sin gastos este mes.</p>
     </div>
 
     <div class="card" style="margin-bottom:1rem;">
       <p class="section-h"><i class="ti ti-chart-pie" aria-hidden="true"></i><span>Por categoría</span></p>
       <div id="cat-breakdown"></div>
       <p id="cat-empty" style="font-size:13px;color:var(--text-muted);margin:0;display:none;">Sin gastos este mes.</p>
+    </div>
     </div>
 
     <div class="card">

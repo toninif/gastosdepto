@@ -52,6 +52,22 @@ function fillSelect(sel, options){
     sel.appendChild(opt);
   });
 }
+function buildDonutSVG(segments){
+  const r = 46, cx = 60, cy = 60, sw = 16;
+  const circumference = 2 * Math.PI * r;
+  const total = segments.reduce(function(s,seg){ return s+seg.value; }, 0);
+  let circles = '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="var(--surface-2)" stroke-width="'+sw+'"/>';
+  let offset = 0;
+  segments.forEach(function(seg){
+    if(seg.value <= 0 || total <= 0) return;
+    const len = (seg.value/total) * circumference;
+    circles += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+seg.color+'" stroke-width="'+sw+
+      '" stroke-dasharray="'+len+' '+(circumference-len)+'" stroke-dashoffset="'+(-offset)+
+      '" transform="rotate(-90 '+cx+' '+cy+')"/>';
+    offset += len;
+  });
+  return '<svg width="120" height="120" viewBox="0 0 120 120" style="flex-shrink:0;">' + circles + '</svg>';
+}
 
 /* ---------- Auth ---------- */
 
@@ -206,36 +222,29 @@ function renderPanel(){
   document.getElementById("m-p1").textContent = fmt(p1total);
   document.getElementById("m-p2").textContent = fmt(p2total);
 
-  const debtTotal = p1total + p2total;
-  const mitad = debtTotal/2;
-  const diff = p1total - mitad;
-  const balanceCard = document.getElementById("balance-card");
-  const balanceEl = document.getElementById("balance-detail");
-  const balanceBadge = document.getElementById("balance-badge");
-  const headerChip = document.getElementById("balance-chip-header");
-  if(Math.abs(diff) < 1){
-    balanceCard.style.display = "none";
-    headerChip.style.display = "none";
-  } else if(diff > 0){
-    const msg = config.persona2 + " le debe a " + config.persona1 + ": " + fmt(diff);
-    balanceEl.textContent = msg;
-    balanceCard.style.display = "flex";
-    balanceCard.style.background = "var(--accent)";
-    balanceCard.style.color = "var(--on-accent)";
-    balanceBadge.style.background = "var(--on-accent)";
-    balanceBadge.style.color = "var(--accent)";
-    headerChip.textContent = msg;
-    headerChip.style.display = "inline-block";
+  const ambosTotal = mg.filter(function(g){ return g.quien==="Ambos"; }).reduce(function(s,g){ return s+Number(g.monto); },0);
+  const splitWrap = document.getElementById("split-chart");
+  const splitEmpty = document.getElementById("split-empty");
+  if(total <= 0){
+    splitWrap.innerHTML = "";
+    splitEmpty.style.display = "block";
   } else {
-    const msg = config.persona1 + " le debe a " + config.persona2 + ": " + fmt(-diff);
-    balanceEl.textContent = msg;
-    balanceCard.style.display = "flex";
-    balanceCard.style.background = "var(--pro)";
-    balanceCard.style.color = "var(--on-pro)";
-    balanceBadge.style.background = "var(--on-pro)";
-    balanceBadge.style.color = "var(--pro)";
-    headerChip.textContent = msg;
-    headerChip.style.display = "inline-block";
+    splitEmpty.style.display = "none";
+    const segs = [
+      { label: config.persona1, value: p1total, color: "var(--accent)" },
+      { label: config.persona2, value: p2total, color: "var(--pro)" },
+      { label: "Ambos", value: ambosTotal, color: "var(--neutral)" }
+    ].filter(function(s){ return s.value > 0; });
+    const legend = segs.map(function(s){
+      const pct = Math.round(s.value/total*100);
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+        '<span style="width:10px;height:10px;border-radius:50%;background:'+s.color+';flex-shrink:0;"></span>' +
+        '<span style="font-size:13px;flex:1;">'+s.label+'</span>' +
+        '<span style="font-size:13px;font-weight:600;">'+fmt(s.value)+'</span>' +
+        '<span style="font-size:12px;color:var(--text-muted);min-width:32px;text-align:right;">'+pct+'%</span>' +
+      '</div>';
+    }).join("");
+    splitWrap.innerHTML = buildDonutSVG(segs) + '<div style="flex:1;">' + legend + '</div>';
   }
 
   const byCat = {};
