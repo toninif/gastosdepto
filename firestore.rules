@@ -1,0 +1,17 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function estaAutorizado() {
+      return request.auth != null &&
+        request.auth.token.email in [
+          'persona1@gmail.com',
+          'persona2@gmail.com'
+        ];
+    }
+
+    match /{document=**} {
+      allow read, write: if estaAutorizado();
+    }
+  }
+}

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gastos compartidos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="login-screen" class="login-screen">
+  <div class="login-card">
+    <div class="badge badge-lg role-accent"><i class="ti ti-wallet" aria-hidden="true"></i></div>
+    <h1>Gastos compartidos</h1>
+    <p class="muted">Iniciá sesión con Google para cargar y ver los gastos.</p>
+    <button id="btn-login" class="btn-primary"><i class="ti ti-brand-google" aria-hidden="true"></i>Iniciar sesión con Google</button>
+    <p id="login-error" class="err" style="display:none;margin-top:14px;"></p>
+  </div>
+</div>
+
+<div id="app" class="app" style="display:none;">
+
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="badge badge-cat role-accent"><i class="ti ti-wallet" aria-hidden="true"></i></div>
+      <div>
+        <p class="title">Gastos compartidos</p>
+        <span id="balance-chip-header" class="chip" style="display:none;"></span>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;">
+      <button class="iconbtn bordered" id="btn-settings" aria-label="Configuración"><i class="ti ti-settings" aria-hidden="true"></i></button>
+      <button class="iconbtn bordered" id="btn-logout" aria-label="Cerrar sesión"><i class="ti ti-logout" aria-hidden="true"></i></button>
+    </div>
+  </div>
+
+  <div id="settings-panel" class="card" style="display:none;margin-bottom:1rem;">
+    <p style="font-size:13px;font-weight:600;color:var(--text-secondary);margin:0 0 10px;">Nombres</p>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <input type="text" id="cfg-p1" placeholder="Persona 1"/>
+      <input type="text" id="cfg-p2" placeholder="Persona 2"/>
+    </div>
+    <button class="linkbtn" id="btn-save-config"><i class="ti ti-check" aria-hidden="true"></i>Guardar nombres</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-cargar"><i class="ti ti-plus" aria-hidden="true"></i>Cargar gasto</button>
+    <button class="tab-btn" id="tab-panel"><i class="ti ti-chart-bar" aria-hidden="true"></i>Panel</button>
+  </div>
+
+  <div id="view-cargar">
+    <div class="card" style="margin-bottom:1rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+        <p class="section-h" style="margin:0;"><i class="ti ti-repeat" aria-hidden="true"></i><span>Gastos fijos del mes</span></p>
+        <button class="linkbtn" id="btn-toggle-add-fijo"><i class="ti ti-plus" style="font-size:15px;" aria-hidden="true"></i>Nuevo fijo</button>
+      </div>
+      <div id="fijos-list"></div>
+      <p id="fijos-empty" style="font-size:13px;color:var(--text-muted);margin:6px 0 0;display:none;">Todavía no cargaste gastos fijos. Agregá el alquiler, servicios, etc. para tenerlos a mano cada mes.</p>
+
+      <div id="add-fijo-form" style="display:none;margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border);">
+        <div class="field"><label for="nf-nombre">Nombre</label><input type="text" id="nf-nombre" placeholder="Alquiler"/></div>
+        <div class="field"><label for="nf-categoria">Categoría</label><select id="nf-categoria"></select></div>
+        <div class="field"><label for="nf-monto">Monto habitual</label><input type="number" id="nf-monto" min="0" step="1" placeholder="0"/></div>
+        <div class="field"><label for="nf-quien">Lo paga habitualmente</label><select id="nf-quien"></select></div>
+        <span class="err" id="err-fijo">Completá nombre y monto.</span>
+        <button class="linkbtn" id="btn-add-fijo" style="margin-top:4px;"><i class="ti ti-check" aria-hidden="true"></i>Guardar gasto fijo</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="section-h"><i class="ti ti-receipt-2" aria-hidden="true"></i><span>Cargar gasto</span></p>
+      <div class="field"><label for="g-fecha">Fecha</label><input type="date" id="g-fecha"/></div>
+      <div class="field"><label for="g-monto">Monto</label><input type="number" id="g-monto" min="0" step="1" placeholder="0"/><span class="err" id="err-monto">Ingresá un monto mayor a cero.</span></div>
+      <div class="field"><label for="g-categoria">Categoría</label><select id="g-categoria"></select></div>
+      <div class="field"><label for="g-quien">Quién lo hizo</label><select id="g-quien"></select></div>
+      <div class="field"><label for="g-nota">Nota (opcional)</label><input type="text" id="g-nota" placeholder="Cena, nafta, farmacia..."/></div>
+      <label class="checkline"><input type="checkbox" id="g-esfijo"/> Guardar también como gasto fijo mensual</label>
+      <button id="btn-add-gasto" class="btn-primary"><i class="ti ti-plus" aria-hidden="true"></i>Agregar gasto</button>
+    </div>
+  </div>
+
+  <div id="view-panel" style="display:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+      <button class="iconbtn" id="btn-prev-month" aria-label="Mes anterior"><i class="ti ti-chevron-left" style="font-size:18px;" aria-hidden="true"></i></button>
+      <p id="month-label" style="font-size:14px;font-weight:600;margin:0;"></p>
+      <button class="iconbtn" id="btn-next-month" aria-label="Mes siguiente"><i class="ti ti-chevron-right" style="font-size:18px;" aria-hidden="true"></i></button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1rem;">
+      <div class="metric">
+        <p class="lbl"><i class="ti ti-chart-bar" style="font-size:13px;" aria-hidden="true"></i>Total del mes</p>
+        <p class="val" id="m-total">$0</p>
+      </div>
+      <div class="metric">
+        <p class="lbl"><span class="badge badge-avatar role-accent" id="m-p1-avatar"></span><span id="m-p1-lbl">Pagó</span></p>
+        <p class="val" id="m-p1">$0</p>
+      </div>
+      <div class="metric">
+        <p class="lbl"><span class="badge badge-avatar role-pro" id="m-p2-avatar"></span><span id="m-p2-lbl">Pagó</span></p>
+        <p class="val" id="m-p2">$0</p>
+      </div>
+    </div>
+
+    <div class="card" id="balance-card" style="margin-bottom:1rem;display:flex;align-items:center;gap:12px;border:none;">
+      <div class="badge badge-cat" id="balance-badge" style="width:40px;height:40px;font-size:19px;"><i class="ti ti-arrow-right" aria-hidden="true"></i></div>
+      <div>
+        <p style="font-size:12px;margin:0;opacity:0.85;">Balance del mes</p>
+        <p id="balance-detail" style="font-size:17px;font-weight:600;margin:2px 0 0;"></p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:1rem;">
+      <p class="section-h"><i class="ti ti-chart-pie" aria-hidden="true"></i><span>Por categoría</span></p>
+      <div id="cat-breakdown"></div>
+      <p id="cat-empty" style="font-size:13px;color:var(--text-muted);margin:0;display:none;">Sin gastos este mes.</p>
+    </div>
+
+    <div class="card">
+      <p class="section-h" style="margin:0 0 4px;"><i class="ti ti-list" aria-hidden="true"></i><span>Movimientos</span></p>
+      <div id="tx-list"></div>
+      <p id="tx-empty" style="font-size:13px;color:var(--text-muted);margin:6px 0 0;display:none;">Todavía no hay gastos cargados este mes.</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
