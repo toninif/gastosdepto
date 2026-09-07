@@ -86,6 +86,132 @@ function currentPersonalName(){
   return currentUser.displayName || "Mis gastos";
 }
 
+/* ---------- Receipt scan ---------- */
+
+let scanTarget = null;
+
+function parseTicketAmount(value){
+  let clean = String(value || "").replace(/[^0-9.,]/g, "");
+  if(!clean) return 0;
+  const lastComma = clean.lastIndexOf(",");
+  const lastDot = clean.lastIndexOf(".");
+  if(lastComma !== -1 && lastDot !== -1){
+    if(lastComma > lastDot) clean = clean.replace(/\./g, "").replace(",", ".");
+    else clean = clean.replace(/,/g, "");
+  } else if(lastComma !== -1){
+    const decimals = clean.length - lastComma - 1;
+    clean = decimals <= 2 ? clean.replace(",", ".") : clean.replace(/,/g, "");
+  } else if(lastDot !== -1){
+    const decimals = clean.length - lastDot - 1;
+    clean = decimals <= 2 ? clean : clean.replace(/\./g, "");
+  }
+  return Math.round(Number(clean) || 0);
+}
+
+function amountsInText(text){
+  const matches = String(text || "").match(/(?:\$|ars\s*)?\s*\d{1,3}(?:[.\s]\d{3})*(?:,\d{1,2})?|(?:\$|ars\s*)?\s*\d+(?:[.,]\d{1,2})?/gi) || [];
+  return matches.map(parseTicketAmount).filter(function(amount){ return amount > 0; });
+}
+
+function findTicketTotal(lines){
+  const priority = lines.filter(function(line){ return /(?:importe\s+)?total|total\s+a\s+pagar|a\s+pagar|saldo\s+final/i.test(line); });
+  for(let index = priority.length - 1; index >= 0; index -= 1){
+    const amounts = amountsInText(priority[index]);
+    if(amounts.length) return Math.max.apply(null, amounts);
+  }
+  const currencyLines = lines.filter(function(line){ return /\$|\bars\b|importe/i.test(line); });
+  const candidates = currencyLines.reduce(function(all, line){ return all.concat(amountsInText(line)); }, []);
+  return candidates.length ? Math.max.apply(null, candidates) : 0;
+}
+
+function findTicketDate(text){
+  const ymd = String(text).match(/\b(20\d{2})[\/-](\d{1,2})[\/-](\d{1,2})\b/);
+  if(ymd) return ymd[1] + "-" + ymd[2].padStart(2, "0") + "-" + ymd[3].padStart(2, "0");
+  const dmy = String(text).match(/\b(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})\b/);
+  if(!dmy) return "";
+  const year = dmy[3].length === 2 ? "20" + dmy[3] : dmy[3];
+  return year + "-" + dmy[2].padStart(2, "0") + "-" + dmy[1].padStart(2, "0");
+}
+
+function findTicketMerchant(lines){
+  const ignored = /total|fecha|hora|cuit|iva|ticket|factura|comprobante|cliente|cajero|art[íi]culo|cantidad|descripci[oó]n/i;
+  const merchant = lines.find(function(line){
+    return /[a-záéíóúñ]/i.test(line) && !ignored.test(line) && !/^\d+[\s./-]*$/.test(line);
+  });
+  return merchant ? merchant.slice(0, 70) : "";
+}
+
+function guessTicketCategory(text){
+  const source = String(text).toLowerCase();
+  if(/coto|carrefour|disco|jumbo|vea|changomas|supermerc|mercado|dia\s*%|maxiconsumo/.test(source)) return "Supermercado";
+  if(/ypf|shell|axion|combustible|nafta|sube|uber|cabify|estaci[oó]n/.test(source)) return "Transporte";
+  if(/farmacia|farmacity|medic|obra social|hospital/.test(source)) return "Salud";
+  if(/restaurante|rest[oó]|bar\b|caf[eé]|pizzer[ií]a|hamburg|delivery|rappi|pedidosya/.test(source)) return "Comida";
+  if(/cine|teatro|entrada|show|spotify|netflix/.test(source)) return "Salidas";
+  if(/hotel|aerol[ií]nea|pasaje|booking/.test(source)) return "Viajes";
+  return "Otros";
+}
+
+function showScanStatus(target, message, isError){
+  const status = document.getElementById(target === "shared" ? "scan-shared-status" : "scan-personal-status");
+  status.textContent = message;
+  status.classList.toggle("error", Boolean(isError));
+}
+
+function applyTicketData(target, text){
+  const lines = text.split(/\r?\n/).map(function(line){ return line.trim(); }).filter(Boolean);
+  const total = findTicketTotal(lines);
+  const date = findTicketDate(text);
+  const merchant = findTicketMerchant(lines);
+  const category = guessTicketCategory(text);
+  const ids = target === "shared" ? { amount:"g-monto", date:"g-fecha", note:"g-nota", category:"g-categoria" } : { amount:"pg-monto", date:"pg-fecha", note:"pg-nota", category:"pg-categoria" };
+  if(total) document.getElementById(ids.amount).value = total;
+  if(date) document.getElementById(ids.date).value = date;
+  if(merchant) document.getElementById(ids.note).value = merchant;
+  document.getElementById(ids.category).value = category;
+  const found = [];
+  if(total) found.push("monto");
+  if(date) found.push("fecha");
+  if(merchant) found.push("comercio");
+  found.push("categoría sugerida");
+  showScanStatus(target, total ? "Listo: completamos " + found.join(", ") + ". Revisá los datos y guardá el gasto." : "Leí el comprobante, pero no pude identificar el total. Completalo manualmente y guardá el gasto.", !total);
+}
+
+async function scanReceipt(file){
+  const target = scanTarget;
+  if(!target || !file) return;
+  if(!/^image\/(jpeg|png|webp)$/.test(file.type)){
+    showScanStatus(target, "Elegí una foto JPG, PNG o WebP.", true);
+    return;
+  }
+  if(file.size > 10 * 1024 * 1024){
+    showScanStatus(target, "La imagen supera los 10 MB. Elegí una foto más liviana.", true);
+    return;
+  }
+  if(!window.Tesseract){
+    showScanStatus(target, "No se pudo cargar el lector. Verificá tu conexión e intentá de nuevo.", true);
+    return;
+  }
+  document.querySelectorAll(".scan-btn").forEach(function(button){ button.disabled = true; });
+  showScanStatus(target, "Leyendo comprobante…", false);
+  try {
+    const result = await Tesseract.recognize(file, "spa", {
+      logger: function(progress){
+        if(progress.status === "recognizing text" && progress.progress){
+          showScanStatus(target, "Leyendo comprobante… " + Math.round(progress.progress * 100) + "%", false);
+        }
+      }
+    });
+    applyTicketData(target, result.data.text || "");
+  } catch(error) {
+    console.error("No se pudo leer el comprobante.", error);
+    showScanStatus(target, "No pude leer esa imagen. Probá con una foto más nítida.", true);
+  } finally {
+    document.querySelectorAll(".scan-btn").forEach(function(button){ button.disabled = false; });
+    document.getElementById("receipt-file").value = "";
+  }
+}
+
 /* ---------- Auth ---------- */
 
 function showLogin(){
@@ -473,6 +599,19 @@ document.getElementById("tab-cargar").onclick = function(){ showTab("cargar"); }
 document.getElementById("tab-panel").onclick = function(){ showTab("panel"); };
 document.getElementById("scope-shared").onclick = function(){ showScope("shared"); };
 document.getElementById("scope-personal").onclick = function(){ showScope("personal"); };
+document.getElementById("btn-scan-shared").onclick = function(){
+  scanTarget = "shared";
+  showScanStatus(scanTarget, "Elegí una foto del comprobante.", false);
+  document.getElementById("receipt-file").click();
+};
+document.getElementById("btn-scan-personal").onclick = function(){
+  scanTarget = "personal";
+  showScanStatus(scanTarget, "Elegí una foto del comprobante.", false);
+  document.getElementById("receipt-file").click();
+};
+document.getElementById("receipt-file").onchange = function(){
+  scanReceipt(this.files && this.files[0]);
+};
 
 document.getElementById("btn-settings").onclick = function(){
   const p = document.getElementById("settings-panel");

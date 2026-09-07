@@ -66,6 +66,11 @@ input:focus,select:focus{outline:3px solid rgba(184,217,189,.55);outline-offset:
 .section-h i{font-size:16px;color:var(--accent-strong);}
 .btn-primary{width:100%;background:var(--accent);color:var(--on-accent);border:2px solid var(--border-strong);border-radius:12px;padding:12px;font-size:14px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;box-shadow:4px 4px 0 #d6eddc;}
 .btn-primary:hover{transform:translate(1px,1px);box-shadow:3px 3px 0 #d6eddc;}
+.scan-btn{width:100%;margin:-2px 0 8px;background:var(--surface-2);color:var(--text);border:2px dashed var(--border-strong);border-radius:10px;padding:10px 12px;font:900 13px inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;}
+.scan-btn:hover{background:var(--bg-accent);}
+.scan-btn:disabled{cursor:wait;opacity:.7;}
+.scan-status{min-height:18px;margin:0 0 12px;font-size:12px;color:var(--text-secondary);font-weight:600;}
+.scan-status.error{color:#9b3d3d;}
 .catbar-track{background:#e3f2e7;border:2px solid var(--border-strong);border-radius:999px;height:10px;width:100%;overflow:hidden;}
 .catbar-fill{height:100%;border-radius:999px;}
 label.checkline{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-secondary);margin-bottom:14px;font-weight:700;}

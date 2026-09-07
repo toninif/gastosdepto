@@ -82,6 +82,8 @@
       <div class="field"><label for="g-categoria">Categoría</label><select id="g-categoria"></select></div>
       <div class="field"><label for="g-quien">Quién lo hizo</label><select id="g-quien"></select></div>
       <div class="field"><label for="g-nota">Nota (opcional)</label><input type="text" id="g-nota" placeholder="Cena, nafta, farmacia..."/></div>
+      <button type="button" class="scan-btn" id="btn-scan-shared"><i class="ti ti-scan" aria-hidden="true"></i>Escanear comprobante</button>
+      <p id="scan-shared-status" class="scan-status" aria-live="polite"></p>
       <label class="checkline"><input type="checkbox" id="g-esfijo"/> Guardar también como gasto fijo mensual</label>
       <button id="btn-add-gasto" class="btn-primary"><i class="ti ti-plus" aria-hidden="true"></i>Agregar gasto</button>
     </div>
@@ -166,6 +168,8 @@
       <div class="field"><label for="pg-monto">Monto</label><input type="number" id="pg-monto" min="0" step="1" placeholder="0"/><span class="err" id="err-pg-monto">Ingresá un monto mayor a cero.</span></div>
       <div class="field"><label for="pg-categoria">Categoría</label><select id="pg-categoria"></select></div>
       <div class="field"><label for="pg-nota">Nota (opcional)</label><input type="text" id="pg-nota" placeholder="Almuerzo, ropa, farmacia..."/></div>
+      <button type="button" class="scan-btn" id="btn-scan-personal"><i class="ti ti-scan" aria-hidden="true"></i>Escanear comprobante</button>
+      <p id="scan-personal-status" class="scan-status" aria-live="polite"></p>
       <button id="btn-add-personal-gasto" class="btn-primary"><i class="ti ti-plus" aria-hidden="true"></i>Agregar gasto personal</button>
     </div>
 
@@ -189,9 +193,12 @@
   </div>
 </div>
 
+<input id="receipt-file" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" style="display:none;"/>
+
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="firebase-config.js"></script>
 <script src="app.js"></script>
 </body>
