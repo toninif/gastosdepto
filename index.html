@@ -28,7 +28,7 @@
     <div style="display:flex;align-items:center;gap:10px;">
       <div class="badge badge-cat role-accent"><i class="ti ti-wallet" aria-hidden="true"></i></div>
       <div>
-        <p class="title">Gastos compartidos</p>
+        <p class="title" id="app-title">Gastos compartidos</p>
       </div>
     </div>
     <div style="display:flex;gap:6px;">
@@ -46,6 +46,12 @@
     <button class="linkbtn" id="btn-save-config"><i class="ti ti-check" aria-hidden="true"></i>Guardar nombres</button>
   </div>
 
+  <div class="scope-tabs" role="tablist" aria-label="Tipo de gastos">
+    <button class="scope-tab active" id="scope-shared" role="tab" aria-selected="true"><i class="ti ti-users" aria-hidden="true"></i>Compartidos</button>
+    <button class="scope-tab" id="scope-personal" role="tab" aria-selected="false"><i class="ti ti-user" aria-hidden="true"></i>Personales</button>
+  </div>
+
+  <div id="view-shared">
   <div class="tabs">
     <button class="tab-btn active" id="tab-cargar"><i class="ti ti-plus" aria-hidden="true"></i>Cargar gasto</button>
     <button class="tab-btn" id="tab-panel"><i class="ti ti-chart-bar" aria-hidden="true"></i>Panel</button>
@@ -69,7 +75,6 @@
         <button class="linkbtn" id="btn-add-fijo" style="margin-top:4px;"><i class="ti ti-check" aria-hidden="true"></i>Guardar gasto fijo</button>
       </div>
     </div>
-
     <div class="card">
       <p class="section-h"><i class="ti ti-receipt-2" aria-hidden="true"></i><span>Cargar gasto</span></p>
       <div class="field"><label for="g-fecha">Fecha</label><input type="date" id="g-fecha"/></div>
@@ -115,12 +120,71 @@
       <div id="cat-breakdown"></div>
       <p id="cat-empty" style="font-size:13px;color:var(--text-muted);margin:0;display:none;">Sin gastos este mes.</p>
     </div>
-    </div>
 
     <div class="card">
       <p class="section-h" style="margin:0 0 4px;"><i class="ti ti-list" aria-hidden="true"></i><span>Movimientos</span></p>
       <div id="tx-list"></div>
       <p id="tx-empty" style="font-size:13px;color:var(--text-muted);margin:6px 0 0;display:none;">Todavía no hay gastos cargados este mes.</p>
+    </div>
+  </div>
+
+  </div>
+
+  <div id="view-personal" style="display:none;">
+    <div class="personal-heading">
+      <div>
+        <p class="eyebrow">Gastos personales</p>
+        <p class="personal-name" id="personal-name">Mis gastos</p>
+      </div>
+      <span class="badge badge-avatar role-pro" id="personal-avatar"></span>
+    </div>
+
+    <div class="month-nav">
+      <button class="iconbtn" id="btn-personal-prev-month" aria-label="Mes anterior"><i class="ti ti-chevron-left" style="font-size:18px;" aria-hidden="true"></i></button>
+      <p id="personal-month-label" class="month-label"></p>
+      <button class="iconbtn" id="btn-personal-next-month" aria-label="Mes siguiente"><i class="ti ti-chevron-right" style="font-size:18px;" aria-hidden="true"></i></button>
+    </div>
+
+    <div class="personal-metrics">
+      <div class="metric">
+        <p class="lbl"><i class="ti ti-wallet" style="font-size:13px;" aria-hidden="true"></i>Total del mes</p>
+        <p class="val" id="personal-total">$0</p>
+      </div>
+      <div class="metric">
+        <p class="lbl"><i class="ti ti-arrows-diff" style="font-size:13px;" aria-hidden="true"></i>Vs. mes anterior</p>
+        <p class="val compact" id="personal-comparison">Sin datos</p>
+      </div>
+      <div class="metric">
+        <p class="lbl"><i class="ti ti-tag" style="font-size:13px;" aria-hidden="true"></i>Mayor categoría</p>
+        <p class="val compact" id="personal-top-category">Sin gastos</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:1rem;">
+      <p class="section-h"><i class="ti ti-plus" aria-hidden="true"></i><span>Nuevo gasto personal</span></p>
+      <div class="field"><label for="pg-fecha">Fecha</label><input type="date" id="pg-fecha"/></div>
+      <div class="field"><label for="pg-monto">Monto</label><input type="number" id="pg-monto" min="0" step="1" placeholder="0"/><span class="err" id="err-pg-monto">Ingresá un monto mayor a cero.</span></div>
+      <div class="field"><label for="pg-categoria">Categoría</label><select id="pg-categoria"></select></div>
+      <div class="field"><label for="pg-nota">Nota (opcional)</label><input type="text" id="pg-nota" placeholder="Almuerzo, ropa, farmacia..."/></div>
+      <button id="btn-add-personal-gasto" class="btn-primary"><i class="ti ti-plus" aria-hidden="true"></i>Agregar gasto personal</button>
+    </div>
+
+    <div class="card" style="margin-bottom:1rem;">
+      <p class="section-h"><i class="ti ti-chart-donut" aria-hidden="true"></i><span>En qué gasté</span></p>
+      <div id="personal-category-chart" class="personal-category-chart"></div>
+      <p id="personal-category-empty" class="empty-state">Todavía no hay gastos personales este mes.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:1rem;">
+      <p class="section-h"><i class="ti ti-chart-bar" aria-hidden="true"></i><span>Últimos 6 meses</span></p>
+      <div id="personal-history-chart" class="history-chart"></div>
+      <p id="personal-history-empty" class="empty-state">Cargá gastos para ver tu evolución mensual.</p>
+    </div>
+
+    <div class="card">
+      <p class="section-h" style="margin:0 0 4px;"><i class="ti ti-list" aria-hidden="true"></i><span>Mis movimientos</span></p>
+      <div id="personal-tx-list"></div>
+      <p id="personal-tx-empty" class="empty-state">Todavía no hay gastos personales cargados este mes.</p>
     </div>
   </div>
 </div>

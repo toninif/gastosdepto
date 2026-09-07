@@ -1,0 +1,10 @@
+# Firebase CLI cache and diagnostic logs
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Common local files
+.DS_Store
+Thumbs.db
+*.log

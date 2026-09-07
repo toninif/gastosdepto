@@ -46,9 +46,14 @@ p{margin:0;}
 .tabs{display:flex;gap:8px;margin-bottom:22px;}
 .tab-btn{flex:1;padding:11px;border-radius:12px;border:2px solid var(--border-strong);background:#fff;font-size:14px;font-weight:900;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;box-shadow:3px 3px 0 #d6eddc;}
 .tab-btn.active{background:var(--accent);color:var(--on-accent);}
+.scope-tabs{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:18px;border:3px solid var(--border-strong);border-radius:12px;overflow:hidden;box-shadow:5px 5px 0 #d6eddc;}
+.scope-tab{border:0;background:var(--surface);color:var(--text-secondary);padding:12px 8px;font:900 13px inherit;cursor:pointer;display:flex;gap:7px;align-items:center;justify-content:center;}
+.scope-tab + .scope-tab{border-left:3px solid var(--border-strong);}
+.scope-tab.active{background:var(--accent);color:var(--on-accent);}
 .metric{background:var(--surface-2);border:2px solid var(--border-strong);border-radius:12px;padding:14px 16px;box-shadow:3px 3px 0 #e4f4e8;}
 .metric .lbl{font-size:11px;color:var(--text-secondary);margin:0;display:flex;align-items:center;gap:6px;text-transform:uppercase;font-weight:800;letter-spacing:.06em;}
 .metric .val{font-size:24px;font-weight:900;margin:8px 0 0;letter-spacing:-.04em;}
+.metric .val.compact{font-size:17px;line-height:1.2;overflow-wrap:anywhere;}
 .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
 .field label{font-size:12px;color:var(--text-secondary);font-weight:900;text-transform:uppercase;}
 input,select{width:100%;font-family:inherit;font-size:14px;padding:11px 12px;border-radius:10px;border:2px solid var(--border-strong);background:#fff;color:var(--text);}
@@ -65,3 +70,30 @@ input:focus,select:focus{outline:3px solid rgba(184,217,189,.55);outline-offset:
 .catbar-fill{height:100%;border-radius:999px;}
 label.checkline{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-secondary);margin-bottom:14px;font-weight:700;}
 label.checkline input{width:auto;accent-color:var(--accent-strong);}
+.personal-heading{display:flex;align-items:center;justify-content:space-between;margin:4px 0 14px;}
+.eyebrow{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin-bottom:4px;}
+.personal-name{font-size:22px;font-weight:900;letter-spacing:-.04em;}
+.month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+.month-label{font-size:14px;font-weight:900;margin:0;text-transform:capitalize;}
+.personal-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem;}
+.personal-metrics .metric{min-width:0;padding:13px 12px;}
+.personal-category-chart{display:flex;align-items:center;gap:18px;min-height:120px;}
+.donut-legend{flex:1;min-width:0;}
+.donut-legend-row{display:grid;grid-template-columns:10px minmax(0,1fr) auto auto;align-items:center;gap:7px;margin-bottom:8px;font-size:12px;}
+.legend-dot{width:10px;height:10px;border-radius:50%;border:1px solid var(--border-strong);}
+.legend-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.legend-value{font-weight:800;white-space:nowrap;}
+.legend-pct{color:var(--text-muted);min-width:30px;text-align:right;}
+.empty-state{font-size:13px;color:var(--text-muted);margin:0;display:none;}
+.history-chart{height:170px;display:flex;align-items:flex-end;gap:8px;padding-top:18px;}
+.history-column{height:100%;flex:1;min-width:0;display:grid;grid-template-rows:auto 1fr auto;gap:6px;align-items:end;}
+.history-value{font-size:10px;font-weight:800;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-secondary);}
+.history-bar-wrap{height:100%;border:2px solid var(--border-strong);background:var(--surface-2);border-radius:8px 8px 2px 2px;display:flex;align-items:flex-end;overflow:hidden;}
+.history-bar{width:100%;background:var(--pro);border-top:2px solid var(--border-strong);}
+.history-label{font-size:11px;text-align:center;text-transform:capitalize;color:var(--text-secondary);font-weight:800;}
+@media (max-width:420px){
+  .personal-metrics{grid-template-columns:1fr;}
+  .personal-category-chart{align-items:flex-start;flex-direction:column;}
+  .history-chart{gap:5px;}
+  .history-value{font-size:9px;}
+}

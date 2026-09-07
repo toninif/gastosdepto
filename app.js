@@ -23,7 +23,10 @@ const ROLE_FILL = { accent:"var(--accent)", success:"var(--success)", warning:"v
 let config = { persona1: "Persona 1", persona2: "Persona 2" };
 let gastos = [];
 let fijos = [];
+let personalGastos = [];
+let currentUser = null;
 let currentMonth = new Date().toISOString().slice(0,7);
+let personalCurrentMonth = currentMonth;
 let unsubscribers = [];
 
 function fmt(n){
@@ -33,6 +36,14 @@ function fmt(n){
 function monthLabel(mk){
   const parts = mk.split("-");
   return MONTHS[parseInt(parts[1],10)-1] + " " + parts[0];
+}
+function shiftMonth(mk, delta){
+  const parts = mk.split("-").map(Number);
+  const date = new Date(parts[0], parts[1] - 1 + delta, 1);
+  return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
+}
+function shortMonth(mk){
+  return MONTHS[parseInt(mk.slice(5,7), 10) - 1].slice(0,3);
 }
 function initials(name){
   return (name || "").trim().slice(0,2).toUpperCase() || "?";
@@ -68,6 +79,12 @@ function buildDonutSVG(segments){
   });
   return '<svg width="120" height="120" viewBox="0 0 120 120" style="flex-shrink:0;">' + circles + '</svg>';
 }
+function currentPersonalName(){
+  if(!currentUser) return "Mis gastos";
+  if(currentUser.email === ALLOWED_EMAILS[0]) return config.persona1;
+  if(currentUser.email === ALLOWED_EMAILS[1]) return config.persona2;
+  return currentUser.displayName || "Mis gastos";
+}
 
 /* ---------- Auth ---------- */
 
@@ -97,6 +114,7 @@ document.getElementById("btn-logout").onclick = function(){
 
 auth.onAuthStateChanged(function(user){
   detachListeners();
+  currentUser = null;
   if(!user){
     showLogin();
     return;
@@ -107,6 +125,7 @@ auth.onAuthStateChanged(function(user){
     auth.signOut();
     return;
   }
+  currentUser = user;
   showApp();
   attachListeners();
 });
@@ -139,6 +158,14 @@ function attachListeners(){
       renderFijos();
     })
   );
+  unsubscribers.push(
+    db.collection("gastosPersonales").where("ownerEmail", "==", currentUser.email).onSnapshot(function(snap){
+      personalGastos = snap.docs.map(function(d){ return Object.assign({ id: d.id }, d.data()); });
+      renderPersonal();
+    }, function(err){
+      console.error("No se pudieron cargar los gastos personales.", err);
+    })
+  );
 }
 function detachListeners(){
   unsubscribers.forEach(function(u){ u(); });
@@ -151,6 +178,8 @@ function addGasto(entry){ return db.collection("gastos").add(entry); }
 function deleteGasto(id){ return db.collection("gastos").doc(id).delete(); }
 function addFijo(entry){ return db.collection("fijos").add(entry); }
 function deleteFijo(id){ return db.collection("fijos").doc(id).delete(); }
+function addPersonalGasto(entry){ return db.collection("gastosPersonales").add(entry); }
+function deletePersonalGasto(id){ return db.collection("gastosPersonales").doc(id).delete(); }
 function saveConfig(newConfig){ return db.collection("config").doc("main").set(newConfig, { merge: true }); }
 
 /* ---------- Render ---------- */
@@ -164,6 +193,7 @@ function renderNames(){
   fillSelect(document.getElementById("nf-quien"), [config.persona1, config.persona2, "Ambos"]);
   document.getElementById("cfg-p1").value = config.persona1;
   document.getElementById("cfg-p2").value = config.persona2;
+  renderPersonal();
 }
 
 function renderFijos(){
@@ -304,6 +334,121 @@ function renderPanel(){
   }
 }
 
+function monthPersonalGastos(month){
+  return personalGastos.filter(function(g){ return g.fecha && g.fecha.slice(0,7) === month; });
+}
+
+function renderPersonal(){
+  const name = currentPersonalName();
+  const nameEl = document.getElementById("personal-name");
+  if(!nameEl) return;
+  nameEl.textContent = name;
+  document.getElementById("personal-avatar").textContent = initials(name);
+  document.getElementById("personal-month-label").textContent = monthLabel(personalCurrentMonth);
+
+  const entries = monthPersonalGastos(personalCurrentMonth);
+  const total = entries.reduce(function(sum, gasto){ return sum + Number(gasto.monto); }, 0);
+  const previousEntries = monthPersonalGastos(shiftMonth(personalCurrentMonth, -1));
+  const previousTotal = previousEntries.reduce(function(sum, gasto){ return sum + Number(gasto.monto); }, 0);
+  document.getElementById("personal-total").textContent = fmt(total);
+
+  const comparison = document.getElementById("personal-comparison");
+  if(previousEntries.length === 0){
+    comparison.textContent = "Sin datos";
+  } else if(total === previousTotal){
+    comparison.textContent = "Igual";
+  } else {
+    const delta = total - previousTotal;
+    comparison.textContent = (delta > 0 ? "+" : "-") + fmt(Math.abs(delta));
+  }
+
+  const byCategory = {};
+  entries.forEach(function(gasto){
+    byCategory[gasto.categoria] = (byCategory[gasto.categoria] || 0) + Number(gasto.monto);
+  });
+  const categories = Object.entries(byCategory).sort(function(a,b){ return b[1] - a[1]; });
+  const topCategory = document.getElementById("personal-top-category");
+  topCategory.textContent = categories.length ? categories[0][0] : "Sin gastos";
+
+  const categoryChart = document.getElementById("personal-category-chart");
+  const categoryEmpty = document.getElementById("personal-category-empty");
+  categoryChart.innerHTML = "";
+  if(categories.length === 0){
+    categoryEmpty.style.display = "block";
+  } else {
+    categoryEmpty.style.display = "none";
+    const segments = categories.map(function(entry){
+      return { label: entry[0], value: entry[1], color: ROLE_FILL[catMeta(entry[0]).role] };
+    });
+    const legend = segments.map(function(segment){
+      const pct = Math.round(segment.value / total * 100);
+      return '<div class="donut-legend-row">' +
+        '<span class="legend-dot" style="background:' + segment.color + ';"></span>' +
+        '<span class="legend-label">' + segment.label + '</span>' +
+        '<span class="legend-value">' + fmt(segment.value) + '</span>' +
+        '<span class="legend-pct">' + pct + '%</span>' +
+      '</div>';
+    }).join("");
+    categoryChart.innerHTML = buildDonutSVG(segments) + '<div class="donut-legend">' + legend + '</div>';
+  }
+
+  const historyMonths = [];
+  for(let index = 5; index >= 0; index -= 1){
+    historyMonths.push(shiftMonth(personalCurrentMonth, -index));
+  }
+  const history = historyMonths.map(function(month){
+    return { month: month, total: monthPersonalGastos(month).reduce(function(sum, gasto){ return sum + Number(gasto.monto); }, 0) };
+  });
+  const historyChart = document.getElementById("personal-history-chart");
+  const historyEmpty = document.getElementById("personal-history-empty");
+  historyChart.innerHTML = "";
+  const historyMax = Math.max.apply(null, history.map(function(item){ return item.total; }));
+  if(historyMax <= 0){
+    historyEmpty.style.display = "block";
+  } else {
+    historyEmpty.style.display = "none";
+    history.forEach(function(item){
+      const column = document.createElement("div");
+      column.className = "history-column";
+      const height = Math.max(8, Math.round(item.total / historyMax * 100));
+      column.innerHTML =
+        '<span class="history-value">' + fmt(item.total) + '</span>' +
+        '<div class="history-bar-wrap"><div class="history-bar" style="height:' + height + '%;"></div></div>' +
+        '<span class="history-label">' + shortMonth(item.month) + '</span>';
+      historyChart.appendChild(column);
+    });
+  }
+
+  const txList = document.getElementById("personal-tx-list");
+  const txEmpty = document.getElementById("personal-tx-empty");
+  txList.innerHTML = "";
+  const sorted = entries.slice().sort(function(a,b){ return b.fecha.localeCompare(a.fecha); });
+  if(sorted.length === 0){
+    txEmpty.style.display = "block";
+  } else {
+    txEmpty.style.display = "none";
+    sorted.forEach(function(gasto){
+      const row = document.createElement("div");
+      row.className = "row-line";
+      const day = gasto.fecha.slice(8,10) + "/" + gasto.fecha.slice(5,7);
+      row.innerHTML =
+        catBadgeHTML(gasto.categoria, "badge-cat") +
+        '<div style="flex:1;min-width:0;">' +
+          '<p style="font-size:14px;">' + (gasto.nota || gasto.categoria) + '</p>' +
+          '<p style="font-size:12px;color:var(--text-secondary);">' + day + ' · ' + gasto.categoria + '</p>' +
+        '</div>' +
+        '<p style="margin:0 4px;font-size:14px;font-weight:600;white-space:nowrap;">' + fmt(gasto.monto) + '</p>';
+      const del = document.createElement("button");
+      del.className = "iconbtn";
+      del.setAttribute("aria-label", "Eliminar gasto personal");
+      del.innerHTML = '<i class="ti ti-trash" style="font-size:16px;" aria-hidden="true"></i>';
+      del.onclick = function(){ deletePersonalGasto(gasto.id); };
+      row.appendChild(del);
+      txList.appendChild(row);
+    });
+  }
+}
+
 function showTab(which){
   document.getElementById("view-cargar").style.display = which === "cargar" ? "block" : "none";
   document.getElementById("view-panel").style.display = which === "panel" ? "block" : "none";
@@ -312,8 +457,22 @@ function showTab(which){
   if(which === "panel") renderPanel();
 }
 
+function showScope(which){
+  const personal = which === "personal";
+  document.getElementById("view-shared").style.display = personal ? "none" : "block";
+  document.getElementById("view-personal").style.display = personal ? "block" : "none";
+  document.getElementById("scope-shared").classList.toggle("active", !personal);
+  document.getElementById("scope-personal").classList.toggle("active", personal);
+  document.getElementById("scope-shared").setAttribute("aria-selected", String(!personal));
+  document.getElementById("scope-personal").setAttribute("aria-selected", String(personal));
+  document.getElementById("app-title").textContent = personal ? "Gastos personales" : "Gastos compartidos";
+  if(personal) renderPersonal();
+}
+
 document.getElementById("tab-cargar").onclick = function(){ showTab("cargar"); };
 document.getElementById("tab-panel").onclick = function(){ showTab("panel"); };
+document.getElementById("scope-shared").onclick = function(){ showScope("shared"); };
+document.getElementById("scope-personal").onclick = function(){ showScope("personal"); };
 
 document.getElementById("btn-settings").onclick = function(){
   const p = document.getElementById("settings-panel");
@@ -369,6 +528,39 @@ document.getElementById("btn-add-gasto").onclick = async function(){
   currentMonth = fecha.slice(0,7);
 };
 
+document.getElementById("btn-add-personal-gasto").onclick = async function(){
+  const fecha = document.getElementById("pg-fecha").value;
+  const monto = parseFloat(document.getElementById("pg-monto").value);
+  const categoria = document.getElementById("pg-categoria").value;
+  const nota = document.getElementById("pg-nota").value.trim();
+  const err = document.getElementById("err-pg-monto");
+  if(!(monto > 0) || !fecha){
+    err.textContent = "Ingresá una fecha y un monto mayor a cero.";
+    err.style.display = "block";
+    return;
+  }
+  if(!currentUser){ return; }
+  err.style.display = "none";
+  try {
+    await addPersonalGasto({
+      fecha: fecha,
+      monto: monto,
+      categoria: categoria,
+      nota: nota,
+      ownerEmail: currentUser.email,
+      ownerName: currentPersonalName(),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    document.getElementById("pg-monto").value = "";
+    document.getElementById("pg-nota").value = "";
+    personalCurrentMonth = fecha.slice(0,7);
+  } catch(error) {
+    console.error("No se pudo guardar el gasto personal.", error);
+    err.textContent = "No se pudo guardar el gasto. Intentá de nuevo.";
+    err.style.display = "block";
+  }
+};
+
 document.getElementById("btn-prev-month").onclick = function(){
   const parts = currentMonth.split("-").map(Number);
   const d = new Date(parts[0], parts[1]-2, 1);
@@ -381,9 +573,19 @@ document.getElementById("btn-next-month").onclick = function(){
   currentMonth = d.toISOString().slice(0,7);
   renderPanel();
 };
+document.getElementById("btn-personal-prev-month").onclick = function(){
+  personalCurrentMonth = shiftMonth(personalCurrentMonth, -1);
+  renderPersonal();
+};
+document.getElementById("btn-personal-next-month").onclick = function(){
+  personalCurrentMonth = shiftMonth(personalCurrentMonth, 1);
+  renderPersonal();
+};
 
 /* ---------- Init ---------- */
 
 fillSelect(document.getElementById("g-categoria"), CATEGORIES);
 fillSelect(document.getElementById("nf-categoria"), CATEGORIES);
+fillSelect(document.getElementById("pg-categoria"), CATEGORIES);
 document.getElementById("g-fecha").value = new Date().toISOString().slice(0,10);
+document.getElementById("pg-fecha").value = new Date().toISOString().slice(0,10);

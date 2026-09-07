@@ -5,13 +5,31 @@ service cloud.firestore {
     function estaAutorizado() {
       return request.auth != null &&
         request.auth.token.email in [
-          'persona1@gmail.com',
-          'persona2@gmail.com'
+          'fernandotonini11@gmail.com',
+          'lic.angelesfernandez@gmail.com'
         ];
     }
 
-    match /{document=**} {
+    match /gastos/{document} {
       allow read, write: if estaAutorizado();
+    }
+
+    match /fijos/{document} {
+      allow read, write: if estaAutorizado();
+    }
+
+    match /config/{document} {
+      allow read, write: if estaAutorizado();
+    }
+
+    match /gastosPersonales/{document} {
+      allow create: if estaAutorizado() &&
+        request.resource.data.ownerEmail == request.auth.token.email;
+      allow read, delete: if estaAutorizado() &&
+        resource.data.ownerEmail == request.auth.token.email;
+      allow update: if estaAutorizado() &&
+        resource.data.ownerEmail == request.auth.token.email &&
+        request.resource.data.ownerEmail == request.auth.token.email;
     }
   }
 }
