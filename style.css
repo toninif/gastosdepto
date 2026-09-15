@@ -80,6 +80,9 @@ label.checkline input{width:auto;accent-color:var(--accent-strong);}
 .personal-name{font-size:22px;font-weight:900;letter-spacing:-.04em;}
 .month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
 .month-label{font-size:14px;font-weight:900;margin:0;text-transform:capitalize;}
+.personal-currency-filter{display:flex;align-items:center;gap:10px;margin:-2px 0 1rem;}
+.personal-currency-filter label{font-size:12px;color:var(--text-secondary);font-weight:900;text-transform:uppercase;white-space:nowrap;}
+.personal-currency-filter select{padding:8px 10px;}
 .personal-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem;}
 .personal-metrics .metric{min-width:0;padding:13px 12px;}
 .personal-category-chart{display:flex;align-items:center;gap:18px;min-height:120px;}

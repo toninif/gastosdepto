@@ -149,11 +149,11 @@
 
     <div class="personal-metrics">
       <div class="metric">
-        <p class="lbl"><i class="ti ti-wallet" style="font-size:13px;" aria-hidden="true"></i>Total del mes</p>
+        <p class="lbl" id="personal-total-label"><i class="ti ti-wallet" style="font-size:13px;" aria-hidden="true"></i>Total del mes</p>
         <p class="val" id="personal-total">$0</p>
       </div>
       <div class="metric">
-        <p class="lbl"><i class="ti ti-arrows-diff" style="font-size:13px;" aria-hidden="true"></i>Vs. mes anterior</p>
+        <p class="lbl" id="personal-comparison-label"><i class="ti ti-arrows-diff" style="font-size:13px;" aria-hidden="true"></i>Vs. mes anterior</p>
         <p class="val compact" id="personal-comparison">Sin datos</p>
       </div>
       <div class="metric">
@@ -162,10 +162,19 @@
       </div>
     </div>
 
+    <div class="personal-currency-filter">
+      <label for="personal-currency-filter">Moneda del panel</label>
+      <select id="personal-currency-filter">
+        <option value="ARS">Pesos argentinos (ARS)</option>
+        <option value="USD">Dólares estadounidenses (USD)</option>
+      </select>
+    </div>
+
     <div class="card" style="margin-bottom:1rem;">
       <p class="section-h"><i class="ti ti-plus" aria-hidden="true"></i><span>Nuevo gasto personal</span></p>
       <div class="field"><label for="pg-fecha">Fecha</label><input type="date" id="pg-fecha"/></div>
       <div class="field"><label for="pg-monto">Monto</label><input type="number" id="pg-monto" min="0" step="1" placeholder="0"/><span class="err" id="err-pg-monto">Ingresá un monto mayor a cero.</span></div>
+      <div class="field"><label for="pg-moneda">Moneda</label><select id="pg-moneda"><option value="ARS">Pesos argentinos (ARS)</option><option value="USD">Dólares estadounidenses (USD)</option></select></div>
       <div class="field"><label for="pg-categoria">Categoría</label><select id="pg-categoria"></select></div>
       <div class="field"><label for="pg-nota">Nota (opcional)</label><input type="text" id="pg-nota" placeholder="Almuerzo, ropa, farmacia..."/></div>
       <button type="button" class="scan-btn" id="btn-scan-personal"><i class="ti ti-scan" aria-hidden="true"></i>Escanear comprobante</button>

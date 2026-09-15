@@ -29,9 +29,15 @@ let currentMonth = new Date().toISOString().slice(0,7);
 let personalCurrentMonth = currentMonth;
 let unsubscribers = [];
 
-function fmt(n){
+function fmt(n, currency){
   n = Math.round(Number(n) || 0);
-  return "$" + n.toLocaleString("es-AR");
+  return (currency === "USD" ? "US$" : "$") + n.toLocaleString("es-AR");
+}
+function personalCurrency(gasto){
+  return gasto.moneda === "USD" ? "USD" : "ARS";
+}
+function personalCurrencyLabel(currency){
+  return currency === "USD" ? "dólares (USD)" : "pesos argentinos (ARS)";
 }
 function monthLabel(mk){
   const parts = mk.split("-");
@@ -464,6 +470,10 @@ function monthPersonalGastos(month){
   return personalGastos.filter(function(g){ return g.fecha && g.fecha.slice(0,7) === month; });
 }
 
+function personalGastosInCurrency(month, currency){
+  return monthPersonalGastos(month).filter(function(gasto){ return personalCurrency(gasto) === currency; });
+}
+
 function renderPersonal(){
   const name = currentPersonalName();
   const nameEl = document.getElementById("personal-name");
@@ -472,11 +482,14 @@ function renderPersonal(){
   document.getElementById("personal-avatar").textContent = initials(name);
   document.getElementById("personal-month-label").textContent = monthLabel(personalCurrentMonth);
 
-  const entries = monthPersonalGastos(personalCurrentMonth);
+  const currency = document.getElementById("personal-currency-filter").value;
+  const entries = personalGastosInCurrency(personalCurrentMonth, currency);
   const total = entries.reduce(function(sum, gasto){ return sum + Number(gasto.monto); }, 0);
-  const previousEntries = monthPersonalGastos(shiftMonth(personalCurrentMonth, -1));
+  const previousEntries = personalGastosInCurrency(shiftMonth(personalCurrentMonth, -1), currency);
   const previousTotal = previousEntries.reduce(function(sum, gasto){ return sum + Number(gasto.monto); }, 0);
-  document.getElementById("personal-total").textContent = fmt(total);
+  document.getElementById("personal-total").textContent = fmt(total, currency);
+  document.getElementById("personal-total-label").textContent = "Total del mes · " + personalCurrencyLabel(currency);
+  document.getElementById("personal-comparison-label").textContent = "Vs. mes anterior · " + personalCurrencyLabel(currency);
 
   const comparison = document.getElementById("personal-comparison");
   if(previousEntries.length === 0){
@@ -485,7 +498,7 @@ function renderPersonal(){
     comparison.textContent = "Igual";
   } else {
     const delta = total - previousTotal;
-    comparison.textContent = (delta > 0 ? "+" : "-") + fmt(Math.abs(delta));
+    comparison.textContent = (delta > 0 ? "+" : "-") + fmt(Math.abs(delta), currency);
   }
 
   const byCategory = {};
@@ -511,7 +524,7 @@ function renderPersonal(){
       return '<div class="donut-legend-row">' +
         '<span class="legend-dot" style="background:' + segment.color + ';"></span>' +
         '<span class="legend-label">' + segment.label + '</span>' +
-        '<span class="legend-value">' + fmt(segment.value) + '</span>' +
+        '<span class="legend-value">' + fmt(segment.value, currency) + '</span>' +
         '<span class="legend-pct">' + pct + '%</span>' +
       '</div>';
     }).join("");
@@ -523,7 +536,7 @@ function renderPersonal(){
     historyMonths.push(shiftMonth(personalCurrentMonth, -index));
   }
   const history = historyMonths.map(function(month){
-    return { month: month, total: monthPersonalGastos(month).reduce(function(sum, gasto){ return sum + Number(gasto.monto); }, 0) };
+    return { month: month, total: personalGastosInCurrency(month, currency).reduce(function(sum, gasto){ return sum + Number(gasto.monto); }, 0) };
   });
   const historyChart = document.getElementById("personal-history-chart");
   const historyEmpty = document.getElementById("personal-history-empty");
@@ -538,7 +551,7 @@ function renderPersonal(){
       column.className = "history-column";
       const height = Math.max(8, Math.round(item.total / historyMax * 100));
       column.innerHTML =
-        '<span class="history-value">' + fmt(item.total) + '</span>' +
+        '<span class="history-value">' + fmt(item.total, currency) + '</span>' +
         '<div class="history-bar-wrap"><div class="history-bar" style="height:' + height + '%;"></div></div>' +
         '<span class="history-label">' + shortMonth(item.month) + '</span>';
       historyChart.appendChild(column);
@@ -548,7 +561,7 @@ function renderPersonal(){
   const txList = document.getElementById("personal-tx-list");
   const txEmpty = document.getElementById("personal-tx-empty");
   txList.innerHTML = "";
-  const sorted = entries.slice().sort(function(a,b){ return b.fecha.localeCompare(a.fecha); });
+  const sorted = monthPersonalGastos(personalCurrentMonth).slice().sort(function(a,b){ return b.fecha.localeCompare(a.fecha); });
   if(sorted.length === 0){
     txEmpty.style.display = "block";
   } else {
@@ -563,7 +576,7 @@ function renderPersonal(){
           '<p style="font-size:14px;">' + (gasto.nota || gasto.categoria) + '</p>' +
           '<p style="font-size:12px;color:var(--text-secondary);">' + day + ' · ' + gasto.categoria + '</p>' +
         '</div>' +
-        '<p style="margin:0 4px;font-size:14px;font-weight:600;white-space:nowrap;">' + fmt(gasto.monto) + '</p>';
+        '<p style="margin:0 4px;font-size:14px;font-weight:600;white-space:nowrap;">' + fmt(gasto.monto, personalCurrency(gasto)) + '</p>';
       const del = document.createElement("button");
       del.className = "iconbtn";
       del.setAttribute("aria-label", "Eliminar gasto personal");
@@ -670,6 +683,7 @@ document.getElementById("btn-add-gasto").onclick = async function(){
 document.getElementById("btn-add-personal-gasto").onclick = async function(){
   const fecha = document.getElementById("pg-fecha").value;
   const monto = parseFloat(document.getElementById("pg-monto").value);
+  const moneda = document.getElementById("pg-moneda").value;
   const categoria = document.getElementById("pg-categoria").value;
   const nota = document.getElementById("pg-nota").value.trim();
   const err = document.getElementById("err-pg-monto");
@@ -684,6 +698,7 @@ document.getElementById("btn-add-personal-gasto").onclick = async function(){
     await addPersonalGasto({
       fecha: fecha,
       monto: monto,
+      moneda: moneda,
       categoria: categoria,
       nota: nota,
       ownerEmail: currentUser.email,
@@ -692,6 +707,7 @@ document.getElementById("btn-add-personal-gasto").onclick = async function(){
     });
     document.getElementById("pg-monto").value = "";
     document.getElementById("pg-nota").value = "";
+    document.getElementById("personal-currency-filter").value = moneda;
     personalCurrentMonth = fecha.slice(0,7);
   } catch(error) {
     console.error("No se pudo guardar el gasto personal.", error);
@@ -726,5 +742,6 @@ document.getElementById("btn-personal-next-month").onclick = function(){
 fillSelect(document.getElementById("g-categoria"), CATEGORIES);
 fillSelect(document.getElementById("nf-categoria"), CATEGORIES);
 fillSelect(document.getElementById("pg-categoria"), CATEGORIES);
+document.getElementById("personal-currency-filter").onchange = renderPersonal;
 document.getElementById("g-fecha").value = new Date().toISOString().slice(0,10);
 document.getElementById("pg-fecha").value = new Date().toISOString().slice(0,10);
